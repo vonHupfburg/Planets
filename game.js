@@ -1,51 +1,65 @@
-function init() {
-  window.requestAnimationFrame(draw);
-}
-
 function draw() {
-  var sunLocX = 500;
-  var sunLocY = 500;
   var ctx = document.getElementById('canvas').getContext('2d');
   ctx.clearRect(0, 0, 1000, 1000);
 
-  var time = new Date();
-
   // Sun
   ctx.beginPath();
-  ctx.arc(sunLocX, sunLocY, 50, 0, 2*Math.PI);
+  ctx.arc(sunLocX, sunLocY, 100, 0, 2*Math.PI);
   ctx.fillStyle = "yellow";
   ctx.fill();
 
-  drawOrbit(ctx, sunLocX, sunLocY, 100);
-  planet(time, ctx, sunLocX, sunLocY, 100, 25, 5);
-  drawOrbit(ctx, sunLocX, sunLocY, 200);
-  planet(time, ctx, sunLocX, sunLocY, 200, 50, 1.32);
-  drawOrbit(ctx, sunLocX, sunLocY, 400);
-  planet(time, ctx, sunLocX, sunLocY, 400, 100, 15);
+
+  for (var index = 0; index < orbits.length; index++){
+    orbits[index].drawOrbit(ctx);
+    orbits[index].drawPlanet(ctx);
+  }
 
   window.requestAnimationFrame(draw);
+  time++;
 }
 
-function drawOrbit(ctx, sunLocX, sunLocY, distanceFromSun){
-  ctx.beginPath();
-  ctx.arc(sunLocX, sunLocY, distanceFromSun, 0, 2*Math.PI)
-  ctx.stroke();
+class Orbit {
+  constructor(distanceFromSun, orbitalPeriod, fillStyle, planetWidth) {
+    this.distanceFromSun = distanceFromSun;
+    this.orbitalPeriod = orbitalPeriod;
+    this.fillStyle = fillStyle;
+    this.planetWidth = planetWidth;
+  }
+
+  drawOrbit(ctx){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(sunLocX, sunLocY, this.distanceFromSun, 0, 2*Math.PI)
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawPlanet(ctx){
+    var orbitalTime = time - (Math.floor(time/this.orbitalPeriod) * this.orbitalPeriod);
+    ctx.save();
+    ctx.translate(sunLocX, sunLocY);
+    ctx.rotate(Math.PI * 2 * (orbitalTime/this.orbitalPeriod));
+    ctx.translate(-sunLocX, -sunLocY);
+    ctx.beginPath();
+    ctx.arc(sunLocX, sunLocY + this.distanceFromSun, this.planetWidth, 0, 2*Math.PI);
+    ctx.fillStyle = this.fillStyle;
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
-function planet(time, ctx, sunLocX, sunLocY, distanceFromSun, planetWidth, orbitalPeriod){
-  ctx.save();
-  ctx.beginPath();
-  var planetSeconds = time.getSeconds() - Math.floor(time.getSeconds()/orbitalPeriod)*orbitalPeriod;
-  var planetMilliseconds = time.getMilliseconds() / 1000;
-  console.log(planetMilliseconds);
-  console.log(planetSeconds);
-  ctx.translate(sunLocX, sunLocY);
-  ctx.rotate(2*Math.PI*((planetSeconds + planetMilliseconds)/orbitalPeriod));
-  ctx.translate(-sunLocX, -sunLocY);
-  ctx.arc(sunLocX, sunLocY + distanceFromSun, planetWidth, 0, 2*Math.PI);
-  ctx.fillStyle = "brown";
-  ctx.fill();
-  ctx.restore();
-}
+var sunLocX = 500;
+var sunLocY = 500;
+var orbits = [];
+var time = 0;
 
-init();
+orbits.push(new Orbit(120, 100, "#ff9000", 5));
+orbits.push(new Orbit(170, 225, "#aaaaaa", 15));
+orbits.push(new Orbit(220, 365, "#30aaaa", 20));
+orbits.push(new Orbit(270, 687, "#909000", 12));
+orbits.push(new Orbit(320, 12*365, "orange", 30));
+orbits.push(new Orbit(370, 20*365, "yellow", 22));
+orbits.push(new Orbit(420, 84*365, "#00ffff", 20));
+orbits.push(new Orbit(470, 165*365, "#0000ff", 25));
+
+window.requestAnimationFrame(draw);
