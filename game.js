@@ -1,31 +1,61 @@
 function draw() {
-  var ctx = document.getElementById('canvas').getContext('2d');
   ctx.clearRect(0, 0, 1000, 1000);
-
   // Sun
   for (var index = 0; index < orbits.length; index++){
-    orbits[index].drawAll(ctx);
+    orbits[index].drawAll();
   }
 
   window.requestAnimationFrame(draw);
   time++;
 }
 
+function selectionEvent(){
+  barReal = 9999;
+  barIndex = 0;
+  for (var indexOrbits = 0; indexOrbits < orbits.length; indexOrbits++){
+    if (orbits[indexOrbits].canBeSelected === true){
+      var tempReal = Math.pow((Math.pow(Math.abs(event.clientX - 500), 2)) + (Math.pow(Math.abs(event.clientY - 500), 2)), 0.5);
+      var tempReal = Math.abs(tempReal - orbits[indexOrbits].orbitDistance);
+      if (tempReal < barReal){
+        barReal = tempReal;
+        barIndex = indexOrbits;
+      }
+    }
+  }
+  selectedItem = orbits[barIndex];
+}
+
 class Orbit {
-  constructor(orbitThis, orbitDistance, orbitPeriod, fillStyle, planetWidth) {
+  constructor(orbitThis, orbitDistance, fillStyle, planetWidth, canBeSelected, rotatesBackwards) {
     this.orbitThis = orbitThis;
     this.orbitDistance = orbitDistance;
-    this.orbitPeriod = orbitPeriod;
     this.orbitCurrent = 0;
-    this.locX = this.getNextLocX();
-    this.locY = this.getNextLocY();
     this.fillStyle = fillStyle;
     this.planetWidth = planetWidth;
+    this.selectionOpacity = 0;
+    this.locX = this.getNextLocX();
+    this.locY = this.getNextLocY();
+    this.orbitPeriod = this.getOrbitPeriod();
+    this.rotatesBackwards = rotatesBackwards;
+    this.canBeSelected = canBeSelected;
+  }
+
+  getOrbitPeriod(){
+    if (this.orbitThis !== null){
+      return 100 * Math.PI * (((this.orbitDistance)^3)/(this.orbitThis.planetWidth));
+    } else {
+      return 0;
+    }
   }
 
   getNextLocs(){
     var orbitalTime = time - (Math.floor(time/this.orbitPeriod) * this.orbitPeriod);
-    this.orbitCurrent = (orbitalTime / this.orbitPeriod);
+    if (this.rotatesBackwards === true){
+      this.orbitCurrent = 1 - (orbitalTime / this.orbitPeriod);
+    } else {
+      this.orbitCurrent = (orbitalTime / this.orbitPeriod);
+    }
+
     this.locX = this.getNextLocX();
     this.locY = this.getNextLocY();
   }
@@ -46,39 +76,88 @@ class Orbit {
     }
   }
 
-  drawAll(ctx){
+  drawAll(){
     if (this.orbitThis !== null){
-      this.drawOrbit(ctx);
       this.getNextLocs();
+      this.drawOrbit();
     }
-    this.drawPlanet(ctx);
+    this.drawPlanet();
   }
 
-  drawOrbit(ctx){
+  changeOpacity(){
+    if (this.selectionOpacity <= 0){
+      this.opacityIncreasing = true;
+    } else if (this.selectionOpacity >= 100) {
+      this.opacityIncreasing = false;
+    }
+    if (this.opacityIncreasing === true){
+      this.selectionOpacity = this.selectionOpacity + 1.5;
+    } else {
+      this.selectionOpacity = this.selectionOpacity - 1.5;
+    }
+  }
+
+  drawOrbit(){
+    if (selectedItem == this || selectedItem === this.orbitThis & selectedItem !== orbits[0]){
+      this.drawOrbitSelection();
+    }
     ctx.beginPath();
     ctx.arc(this.orbitThis.locX, this.orbitThis.locY, this.orbitDistance, 0, 2*Math.PI)
     ctx.stroke();
   }
 
-  drawPlanet(ctx){
+  drawOrbitSelection(){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.orbitThis.locX, this.orbitThis.locY, this.orbitDistance, 0, 2*Math.PI)
+    ctx.lineWidth = 5;
+    ctx.globalAlpha = (this.selectionOpacity / 100);
+    ctx.strokeStyle = "#ffcc00";
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawPlanet(){
+    if (selectedItem === this || selectedItem === this.orbitThis  & selectedItem !== orbits[0]){
+      this.changeOpacity();
+      this.drawPlanetSelection();
+    }
     ctx.beginPath();
     ctx.arc(this.locX, this.locY, this.planetWidth, 0, 2*Math.PI);
     ctx.fillStyle = this.fillStyle;
     ctx.fill();
   }
+
+  drawPlanetSelection(){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.locX, this.locY, this.planetWidth + 5, 0, 2*Math.PI);
+    ctx.globalAlpha = (this.selectionOpacity / 100);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
+var ctx = document.getElementById('canvas').getContext('2d');
+document.getElementById('canvas').addEventListener("click", selectionEvent);
 var orbits = [];
 var time = 0;
 
-orbits.push(new Orbit(null, 0, 0, '#ffff00', 50));
-orbits.push(new Orbit(orbits[0], 120, 100, "#ff9000", 5));
-orbits.push(new Orbit(orbits[0], 170, 225, "#aaaaaa", 15));
-orbits.push(new Orbit(orbits[0], 220, 365, "#30aaaa", 20));
-orbits.push(new Orbit(orbits[0], 270, 687, "#909000", 12));
-orbits.push(new Orbit(orbits[0], 320, 12*365, "orange", 30));
-orbits.push(new Orbit(orbits[0], 370, 20*365, "yellow", 22));
-orbits.push(new Orbit(orbits[0], 420, 84*365, "#00ffff", 20));
-orbits.push(new Orbit(orbits[0], 470, 165*365, "#0000ff", 25));
-orbits.push(new Orbit(orbits[3], 30, 27, '#909090', 5));
+orbits.push(new Orbit(null, 0, '#ffff00', 50, true, false));
+orbits.push(new Orbit(orbits[0], 80, "#ff9000", 7, true, false));
+orbits.push(new Orbit(orbits[0], 100, "#aaaaaa", 7, true, false));
+orbits.push(new Orbit(orbits[0], 120, "#30aaaa", 7, true, false));
+orbits.push(new Orbit(orbits[0], 145, "#909000", 7, true, false));
+orbits.push(new Orbit(orbits[0], 230, "orange", 22, true, false));
+orbits.push(new Orbit(orbits[0], 300, "#aaccaa", 17, true, false));
+orbits.push(new Orbit(orbits[0], 340, "#ffccff", 15, true, true));
+orbits.push(new Orbit(orbits[0], 400, "#0000ff", 40, true, false));
+orbits.push(new Orbit(orbits[3], 10, '#909090', 3, false, false));
+orbits.push(new Orbit(orbits[4], 10, '#909090', 3, false, false));
+orbits.push(new Orbit(orbits[5], 30, '#909090', 3, false, true));
+orbits.push(new Orbit(orbits[5], 38, '#909090', 3, false, false));
+
+var selectedItem = orbits[0];
+
 window.requestAnimationFrame(draw);
