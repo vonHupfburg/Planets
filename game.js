@@ -14,7 +14,7 @@ function selectionEvent(){
   barIndex = 0;
   for (var indexOrbits = 0; indexOrbits < orbits.length; indexOrbits++){
     if (orbits[indexOrbits].canBeSelected === true){
-      var tempReal = Math.pow((Math.pow(Math.abs(event.clientX - 500), 2)) + (Math.pow(Math.abs(event.clientY - 500), 2)), 0.5);
+      var tempReal = Math.pow((Math.pow(Math.abs(event.clientX - canvasMidX), 2)) + (Math.pow(Math.abs(event.clientY - canvasMidY), 2)), 0.5);
       var tempReal = Math.abs(tempReal - orbits[indexOrbits].orbitDistance);
       if (tempReal < barReal){
         barReal = tempReal;
@@ -26,23 +26,80 @@ function selectionEvent(){
 }
 
 class Orbit {
-  constructor(orbitThis, orbitDistance, fillStyle, planetWidth, canBeSelected, rotatesBackwards) {
+  constructor(orbitThis, planetWidth, canBeSelected) {
     this.orbitThis = orbitThis;
-    this.orbitDistance = orbitDistance;
-    this.orbitCurrent = 0;
-    this.fillStyle = fillStyle;
     this.planetWidth = planetWidth;
-    this.selectionOpacity = 0;
+    this.orbitDistance = 0;
     this.locX = this.getNextLocX();
     this.locY = this.getNextLocY();
-    this.orbitPeriod = this.getOrbitPeriod();
-    this.rotatesBackwards = rotatesBackwards;
+    this.orbitPeriod = 0;
+    if (this.planetWidth !== "sun"){
+      this.planetBlue = this.getRandomBoo();
+      this.planetRed = this.getRandomBoo();
+      this.planetGreen = this.getRandomBoo();
+    }
+    this.planetBlue = false;
+    this.planetRed = false;
+    this.planetGreen = false;
+    this.orbitCurrent = 0;
+    this.selectionOpacity = 0;
     this.canBeSelected = canBeSelected;
+  }
+
+  getPlanetWidthPx(){
+    if (this.planetWidth === "small"){
+      return 4;
+    } else if (this.planetWidth === "medium") {
+      return 10;
+    } else if (this.planetWidth === "large") {
+      return 25;
+    } else {
+      return 50;
+    }
+  }
+
+  getRandomBoo(){
+    if (Math.random() < 0.30){
+      return true;
+    }
+    return false;
+  }
+
+  getPlanetColor(){
+    var tempString = "#";
+    if (this.planetRed === true){
+      tempString = tempString + "ff"
+    } else {
+      tempString = tempString + "00"
+    }
+    if (this.planetGreen === true){
+      tempString = tempString + "ff"
+    } else {
+      tempString = tempString + "00"
+    }
+    if (this.planetBlue === true){
+      tempString = tempString + "ff"
+    } else {
+      tempString = tempString + "00"
+    }
+    if (this.planetRed === false && this.planetBlue === false && this.planetGreen === false){
+      tempString = "#909090"
+    }
+    if (this.planetRed === true && this.planetBlue === true && this.planetGreen === true){
+      tempString = "#ffffdd"
+    }
+    if (this.planetWidth === "sun"){
+      tempString = "#ffff00";
+    }
+    if (this.planetWidth === "moon"){
+      tempString = "#909090"
+    }
+    return tempString;
   }
 
   getOrbitPeriod(){
     if (this.orbitThis !== null){
-      return 100 * Math.PI * (((this.orbitDistance)^3)/(this.orbitThis.planetWidth));
+      return 100 * Math.PI * (((this.orbitDistance)^3)/(this.orbitThis.getPlanetWidthPx()));
     } else {
       return 0;
     }
@@ -98,12 +155,15 @@ class Orbit {
   }
 
   drawOrbit(){
+    ctx.save();
     if (selectedItem == this || selectedItem === this.orbitThis & selectedItem !== orbits[0]){
       this.drawOrbitSelection();
     }
     ctx.beginPath();
     ctx.arc(this.orbitThis.locX, this.orbitThis.locY, this.orbitDistance, 0, 2*Math.PI)
+    ctx.strokeStyle = "#909090"
     ctx.stroke();
+    ctx.restore();
   }
 
   drawOrbitSelection(){
@@ -118,20 +178,27 @@ class Orbit {
   }
 
   drawPlanet(){
+    ctx.save();
     if (selectedItem === this || selectedItem === this.orbitThis  & selectedItem !== orbits[0]){
       this.changeOpacity();
       this.drawPlanetSelection();
     }
     ctx.beginPath();
-    ctx.arc(this.locX, this.locY, this.planetWidth, 0, 2*Math.PI);
-    ctx.fillStyle = this.fillStyle;
+    ctx.arc(this.locX, this.locY, this.getPlanetWidthPx(), 0, 2*Math.PI);
+    ctx.fillStyle = this.getPlanetColor();
     ctx.fill();
+    ctx.restore();
+    if (orbits[0] !== this){
+      ctx.beginPath();
+      ctx.arc(this.locX, this.locY, this.getPlanetWidthPx(), 0, 2*Math.PI);
+      ctx.stroke();
+    }
   }
 
   drawPlanetSelection(){
     ctx.save();
     ctx.beginPath();
-    ctx.arc(this.locX, this.locY, this.planetWidth + 5, 0, 2*Math.PI);
+    ctx.arc(this.locX, this.locY, this.getPlanetWidthPx() + 5, 0, 2*Math.PI);
     ctx.globalAlpha = (this.selectionOpacity / 100);
     ctx.fillStyle = '#ffcc00';
     ctx.fill();
@@ -139,25 +206,104 @@ class Orbit {
   }
 }
 
-var ctx = document.getElementById('canvas').getContext('2d');
-document.getElementById('canvas').addEventListener("click", selectionEvent);
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+canvas.addEventListener("click", selectionEvent);
 var orbits = [];
 var time = 0;
 
-orbits.push(new Orbit(null, 0, '#ffff00', 50, true, false));
-orbits.push(new Orbit(orbits[0], 80, "#ff9000", 7, true, false));
-orbits.push(new Orbit(orbits[0], 100, "#aaaaaa", 7, true, false));
-orbits.push(new Orbit(orbits[0], 120, "#30aaaa", 7, true, false));
-orbits.push(new Orbit(orbits[0], 145, "#909000", 7, true, false));
-orbits.push(new Orbit(orbits[0], 230, "orange", 22, true, false));
-orbits.push(new Orbit(orbits[0], 300, "#aaccaa", 17, true, false));
-orbits.push(new Orbit(orbits[0], 340, "#ffccff", 15, true, true));
-orbits.push(new Orbit(orbits[0], 400, "#0000ff", 40, true, false));
-orbits.push(new Orbit(orbits[3], 10, '#909090', 3, false, false));
-orbits.push(new Orbit(orbits[4], 10, '#909090', 3, false, false));
-orbits.push(new Orbit(orbits[5], 30, '#909090', 3, false, true));
-orbits.push(new Orbit(orbits[5], 38, '#909090', 3, false, false));
+var canvasMidX = canvas.getBoundingClientRect().left + 500;
+var canvasMidY = canvas.getBoundingClientRect().top + 500;
+
+orbits.push(new Orbit(null, "sun", true));
+orbits.push(new Orbit(orbits[0], "small", true));
+orbits.push(new Orbit(orbits[0], "medium", true));
+orbits.push(new Orbit(orbits[0], "medium", true));
+orbits.push(new Orbit(orbits[0], "small", true));
+orbits.push(new Orbit(orbits[0], "large", true));
+orbits.push(new Orbit(orbits[0], "large", true));
+orbits.push(new Orbit(orbits[0], "large", true));
+orbits.push(new Orbit(orbits[0], "large", true));
 
 var selectedItem = orbits[0];
 
+orbitDistances();
+
 window.requestAnimationFrame(draw);
+
+var tempButton = document.getElementById('buttonSmall');
+tempButton.addEventListener("click", clickButtonSmall);
+
+var tempButton = document.getElementById('buttonMedium');
+tempButton.addEventListener("click", clickButtonMedium);
+
+var tempButton = document.getElementById('buttonLarge');
+tempButton.addEventListener("click", clickButtonLarge);
+
+var tempButton = document.getElementById('buttonRed');
+tempButton.addEventListener("click", clickButtonRed);
+
+var tempButton = document.getElementById('buttonGreen');
+tempButton.addEventListener("click", clickButtonGreen);
+
+var tempButton = document.getElementById('buttonBlue');
+tempButton.addEventListener("click", clickButtonBlue);
+
+
+
+function clickButtonSmall(){
+  selectedItem.planetWidth = "small";
+  orbitDistances();
+}
+
+function clickButtonMedium(){
+  selectedItem.planetWidth = "medium";
+  orbitDistances();
+}
+
+function clickButtonLarge(){
+  selectedItem.planetWidth = "large";
+  orbitDistances();
+}
+
+function clickButtonRed(){
+  if (selectedItem.planetRed === true){
+    selectedItem.planetRed = false;
+  } else {
+    selectedItem.planetRed = true;
+  }
+}
+
+function clickButtonBlue(){
+  if (selectedItem.planetBlue === true){
+    selectedItem.planetBlue = false;
+  } else {
+    selectedItem.planetBlue = true;
+  }
+}
+
+function clickButtonGreen(){
+  if (selectedItem.planetGreen === true){
+    selectedItem.planetGreen = false;
+  } else {
+    selectedItem.planetGreen = true;
+  }
+}
+
+function orbitDistances(){
+  console.log(" ")
+  var tempReal = 0;
+  var tempBoo = false;
+  for (var indexOrbits = 1; indexOrbits < orbits.length; indexOrbits++){
+    console.log(orbits[indexOrbits].getPlanetWidthPx())
+    tempReal = tempReal + 5 + orbits[indexOrbits - 1].getPlanetWidthPx() + orbits[indexOrbits].getPlanetWidthPx();
+    console.log(indexOrbits + ": " + tempReal);
+    if (indexOrbits < (orbits.length/2)){
+      orbits[indexOrbits].orbitDistance = tempReal + 50;
+    } else {
+      orbits[indexOrbits].orbitDistance = tempReal + 100;
+    }
+;
+    orbits[indexOrbits].orbitPeriod = orbits[indexOrbits].getOrbitPeriod();
+  }
+}
