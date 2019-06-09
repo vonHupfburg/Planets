@@ -2,19 +2,29 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="utf-8">
-    <title></title>
+    <link rel="stylesheet" href="style.css">
+    <title>Planets</title>
   </head>
   <body>
     <h1>Planets</h1>
-    <p>I don't even.</p>
-    <canvas id="canvas" width="1000" height="1000" border="1px solid #000000"></canvas>
-    <h2>Planet Configuration</h2>
-    <button type="button" id="buttonSmall">Small</button>
-    <button type="button" id="buttonMedium">Medium</button>
-    <button type="button" id="buttonLarge">Large</button>
-    <button type="button" id="buttonRed">Red</button>
-    <button type="button" id="buttonBlue">Blue</button>
-    <button type="button" id="buttonGreen">Green</button>
+    <canvas id="gameCanvas" width="900" height="900"></canvas>
+    <canvas id="copyCanvas" width="400" height="400"></canvas>
+    <div class="user-interface">
+      <h2>Planet Manipulation</h2>
+      <p>Rescale planet:</p>
+      <div class="button-container">
+      <button type="button" id="buttonSmall">Small</button>
+      <button type="button" id="buttonMedium">Medium</button>
+      <button type="button" id="buttonLarge">Large</button>
+      </div>
+      <br>
+      <p>Recolor planet:</p>
+      <div class="button-container">
+      <button type="button" id="buttonRed">Red</button>
+      <button type="button" id="buttonBlue">Blue</button>
+      <button type="button" id="buttonGreen">Green</button>
+      </div>
+    </div>
   </body>
   <script src="game.js">
   </script>
