@@ -2,14 +2,41 @@ function draw() {
   ctx.rect(0, 0, 1000, 1000);
   ctx.fillStyle = "#000000";
   ctx.fill();
-  // Sun
+
+  for (var index = 0; index < stars.length; index++){
+    stars[index].drawAll();
+  }
+
   for (var index = 0; index < orbits.length; index++){
     orbits[index].drawAll();
   }
 
+
+
   window.requestAnimationFrame(draw);
   time++;
 }
+
+
+class Star {
+  constructor() {
+    this.locX = 1000 * Math.random();
+    this.locY = 1000 * Math.random();
+  }
+
+  drawAll(){
+    ctx.beginPath();
+    ctx.arc(this.locX, this.locY, 1, 0, 2*Math.PI);
+    ctx.fillStyle = "#cccccc";
+    ctx.fill();
+  }
+}
+
+stars = [];
+for (var index = 0; index < 1000; index++){
+  stars.push(new Star());
+}
+
 
 function selectionEvent(){
   barReal = 9999;
