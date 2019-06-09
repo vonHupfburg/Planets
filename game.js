@@ -1,5 +1,7 @@
 function draw() {
-  ctx.clearRect(0, 0, 1000, 1000);
+  ctx.rect(0, 0, 1000, 1000);
+  ctx.fillStyle = "#000000";
+  ctx.fill();
   // Sun
   for (var index = 0; index < orbits.length; index++){
     orbits[index].drawAll();
@@ -58,6 +60,7 @@ class Orbit {
     }
   }
 
+  // TODO: Remove this:
   getRandomBoo(){
     if (Math.random() < 0.30){
       return true;
@@ -161,7 +164,7 @@ class Orbit {
     }
     ctx.beginPath();
     ctx.arc(this.orbitThis.locX, this.orbitThis.locY, this.orbitDistance, 0, 2*Math.PI)
-    ctx.strokeStyle = "#909090"
+    ctx.strokeStyle = "#aaaaaa"
     ctx.stroke();
     ctx.restore();
   }
@@ -191,6 +194,7 @@ class Orbit {
     if (orbits[0] !== this){
       ctx.beginPath();
       ctx.arc(this.locX, this.locY, this.getPlanetWidthPx(), 0, 2*Math.PI);
+      ctx.strokeStyle = "#ffffff"
       ctx.stroke();
     }
   }
