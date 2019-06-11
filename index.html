@@ -9,21 +9,45 @@
     <h1>Planets</h1>
     <canvas id="gameCanvas" width="900" height="900"></canvas>
     <canvas id="copyCanvas" width="400" height="400"></canvas>
-    <div class="user-interface">
+
+    <div hidden="true" class="user-interface" id="planetInterface">
       <h2>Planet Manipulation</h2>
+      <div class="description-container">
+        <p class="description">Welcome Planetary Administrator!
+        <br><br>Select a planet to begin! </p></div>
       <p>Rescale planet:</p>
       <div class="button-container">
       <button type="button" id="buttonSmall">Small</button>
       <button type="button" id="buttonMedium">Medium</button>
       <button type="button" id="buttonLarge">Large</button>
       </div>
-      <br>
       <p>Recolor planet:</p>
       <div class="button-container">
       <button type="button" id="buttonRed">Red</button>
       <button type="button" id="buttonBlue">Blue</button>
       <button type="button" id="buttonGreen">Green</button>
       </div>
+      <br>
+    </div>
+
+    <div hidden="true" class="user-interface" id="sunInterface">
+      <h2>Star Manipulation</h2>
+      <div class="description-container">
+        <p class="description" id="sunDescription">The burning heart of this system. <br> Upgrading it enables additional orbits. <br><br> The Galactic Bureaucracy grants a new planet free of charge on your new orbit. </p></div>
+      <p id="upgradeSunPrompt">Upgrade Sun:</p>
+      <div class="button-container">
+      <button type="button" id="buttonUpgrade">Upgrade</button>
+      </div>
+      <br>
+    </div>
+
+    <div class="user-interface" id="modelInterface">
+      <h2>Model System</h2>
+      <p>You have selected the model system. As Planetary Administrator, your job is to copy the model system precisely.</p>
+      <br>
+      <div class="description-container">
+        <p class="description">Some description of the planet that the player selected.</p></div>
+      <br>
     </div>
   </body>
   <script src="game.js">

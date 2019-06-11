@@ -1,10 +1,9 @@
 class Planet {
-  constructor(solarSystem, planetType, canBeSelected) {
+  constructor(solarSystem, planetType) {
     this.solarSystem = solarSystem;
     this.canvas = this.solarSystem.canvas;
     this.ctx = this.canvas.getContext("2d");
     this.selectionOpacity = 0;
-    this.canBeSelected = canBeSelected;
     this.planetType = planetType;
     this.locX = rescaleValue(500, this.canvas);
     this.locY = rescaleValue(500, this.canvas);
@@ -77,7 +76,7 @@ class Planet {
 
   drawPlanet(){
     this.ctx.save();
-    if (this.solarSystem.selectedItem === this || this.solarSystem.selectedItem === this.centerOfGravity && this.solarSystem.selectedItem.planetType !== "sun"){
+    if (selectedItem === this || selectedItem === this.centerOfGravity && selectedItem.planetType !== "sun"){
       this.changeOpacity();
       this.drawPlanetSelection();
     }
@@ -106,8 +105,8 @@ class Planet {
 }
 
 class Orbit extends Planet {
-  constructor(solarSystem, planetType, canBeSelected, centerOfGravity) {
-    super(solarSystem, planetType, canBeSelected, centerOfGravity)
+  constructor(solarSystem, planetType, centerOfGravity) {
+    super(solarSystem, planetType, centerOfGravity)
     this.solarSystem = solarSystem;
     this.centerOfGravity = centerOfGravity;
     this.locX = this.getNextLocX();
@@ -138,7 +137,7 @@ class Orbit extends Planet {
 
   drawOrbit(){
     this.getNextLocs();
-    if (this.solarSystem.selectedItem === this || this.solarSystem.selectedItem === this.centerOfGravity && this.solarSystem.selectedItem.planetType !== "sun"){
+    if (selectedItem === this || selectedItem === this.centerOfGravity && selectedItem.planetType !== "sun"){
       this.drawOrbitSelection();
     }
     this.ctx.save();
@@ -162,9 +161,8 @@ class Orbit extends Planet {
 }
 
 class SolarSystem {
-  constructor(canvas, canBeSelected) {
+  constructor(canvas, canBeManipulated) {
     this.canvas = canvas;
-    this.canBeSelected = canBeSelected;
     this.ctx = this.canvas.getContext("2d");
     this.backgroundStarsArray = this.getStarsArray();
     this.sun = new Planet(this, "sun", true);
@@ -172,19 +170,21 @@ class SolarSystem {
     this.canvasMidY = this.canvas.getBoundingClientRect().top + rescaleValue(500, this.canvas);
     this.orbits = [];
     this.time = 0;
-    this.selectedItem = null;
+    this.canBeManipulated = canBeManipulated;
     //
 
     //TODO: This is game's job. Move later:
-    this.createNewOrbit("small");
-    this.createNewOrbit("medium");
-    this.createNewOrbit("small");
-    this.createNewOrbit("small");
-    this.createNewOrbit("medium");
-    this.createNewOrbit("small");
-    this.createNewOrbit("large");
-    this.createNewOrbit("large");
-    this.orbitDistances();
+    if (this.canvas === copyCanvas){
+      this.createNewOrbit("small");
+      this.createNewOrbit("medium");
+      this.createNewOrbit("small");
+      this.createNewOrbit("small");
+      this.createNewOrbit("medium");
+      this.createNewOrbit("small");
+      this.createNewOrbit("large");
+      this.createNewOrbit("large");
+      this.orbitDistances();
+    }
 
     this.wantEventListener();
 
@@ -192,9 +192,7 @@ class SolarSystem {
   }
 
   wantEventListener(){
-    if (this.canBeSelected === true){
       this.canvas.addEventListener("click", this.selectionEvent.bind(this));
-    }
   }
 
   draw() {
@@ -222,28 +220,27 @@ class SolarSystem {
     var barReal = 9999;
     var barIndex = 0;
     for (var indexOrbits = 0; indexOrbits < this.orbits.length; indexOrbits++){
-      if (this.orbits[indexOrbits].canBeSelected === true){
-        var tempReal = Math.pow((Math.pow(Math.abs(event.clientX - (this.canvas.getBoundingClientRect().left + rescaleValue(500, this.canvas))), 2)) + (Math.pow(Math.abs(event.clientY - (this.canvas.getBoundingClientRect().top + rescaleValue(500, this.canvas))), 2)), 0.5);
-        var tempReal = Math.abs(tempReal - rescaleValue(this.orbits[indexOrbits].orbitDistance, this.canvas));
-        if (tempReal < barReal){
-          barReal = tempReal;
-          barIndex = indexOrbits
-        }
+      var tempReal = Math.pow((Math.pow(Math.abs(event.clientX - (this.canvas.getBoundingClientRect().left + rescaleValue(500, this.canvas))), 2)) + (Math.pow(Math.abs(event.clientY - (this.canvas.getBoundingClientRect().top + rescaleValue(500, this.canvas))), 2)), 0.5);
+      var tempReal = Math.abs(tempReal - rescaleValue(this.orbits[indexOrbits].orbitDistance, this.canvas));
+      if (tempReal < barReal){
+        barReal = tempReal;
+        barIndex = indexOrbits
       }
     }
 
-    this.selectedItem = this.orbits[barIndex];
+    selectedItem = this.orbits[barIndex];
 
     // Check if Sun was selected:
     var tempReal = Math.pow((Math.pow(Math.abs(event.clientX - (this.canvas.getBoundingClientRect().left + rescaleValue(500, this.canvas))), 2)) + (Math.pow(Math.abs(event.clientY - (this.canvas.getBoundingClientRect().top + rescaleValue(500, this.canvas))), 2)), 0.5);
     var tempReal = Math.abs(tempReal - rescaleValue(this.sun.getPlanetWidthPx(), this.canvas));
     if (tempReal < barReal){
-      this.selectedItem = this.sun;
+      selectedItem = this.sun;
     }
+    checkUserInterface();
   }
 
   createNewOrbit(whichType){
-    this.orbits.push(new Orbit(this, whichType, this.canBeSelected, this.sun));
+    this.orbits.push(new Orbit(this, whichType, this.sun));
   }
 
   getStarsArray(){
@@ -303,77 +300,116 @@ var game = new SolarSystem(gameCanvas, true);
 
 copyCanvas = document.getElementById("copyCanvas");
 copyCanvas.style.left = "50px";
-var copyGame = new SolarSystem(copyCanvas, true);
+var copyGame = new SolarSystem(copyCanvas, false);
 
-var userInterface = document.getElementById("userInterface");
+var planetInterface = document.getElementById("planetInterface");
+console.log(planetInterface);
 
 function rescaleValue(whichValue, whichCanvas){
   var rescaleRatio = (whichCanvas.width / 1000);
   return rescaleRatio * whichValue;
 }
 
-//BUTTONS:
-/*
+var selectedItem = null;
+
 var tempButton = document.getElementById('buttonSmall');
 tempButton.addEventListener("click", clickButtonSmall);
-tempButton.style.top = "1200px";
 
 var tempButton = document.getElementById('buttonMedium');
 tempButton.addEventListener("click", clickButtonMedium);
-tempButton.style.top = "1200px";
 
 var tempButton = document.getElementById('buttonLarge');
 tempButton.addEventListener("click", clickButtonLarge);
-tempButton.style.top = "1200px";
 
 var tempButton = document.getElementById('buttonRed');
 tempButton.addEventListener("click", clickButtonRed);
-tempButton.style.top = "1200px";
 
 var tempButton = document.getElementById('buttonGreen');
 tempButton.addEventListener("click", clickButtonGreen);
-tempButton.style.top = "1200px";
 
 var tempButton = document.getElementById('buttonBlue');
 tempButton.addEventListener("click", clickButtonBlue);
-tempButton.style.top = "1200px";
+
+var tempButton = document.getElementById('buttonUpgrade');
+tempButton.addEventListener("click", clickButtonUpgrade);
 
 function clickButtonSmall(){
-  selectedItem.planetWidth = "small";
-  orbitDistances();
+  if (selectedItem.solarSystem.canBeManipulated === true && selectedItem.planetType !== "sun"){
+    selectedItem.planetType = "small";
+    selectedItem.solarSystem.orbitDistances();
+  }
 }
 
 function clickButtonMedium(){
-  selectedItem.planetWidth = "medium";
-  orbitDistances();
+  if (selectedItem.solarSystem.canBeManipulated === true && selectedItem.planetType !== "sun"){
+    selectedItem.planetType = "medium";
+    selectedItem.solarSystem.orbitDistances();
+  }
 }
 
 function clickButtonLarge(){
-  selectedItem.planetWidth = "large";
-  orbitDistances();
+  if (selectedItem.solarSystem.canBeManipulated === true && selectedItem.planetType !== "sun"){
+    selectedItem.planetType = "large";
+    selectedItem.solarSystem.orbitDistances();
+  }
 }
 
 function clickButtonRed(){
-  if (selectedItem.planetRed === true){
-    selectedItem.planetRed = false;
-  } else {
-    selectedItem.planetRed = true;
+  if (selectedItem.solarSystem.canBeManipulated === true && selectedItem.planetType !== "sun"){
+    if (selectedItem.planetRed === true){
+      selectedItem.planetRed = false;
+    } else {
+      selectedItem.planetRed = true;
+    }
   }
 }
 
 function clickButtonBlue(){
-  if (selectedItem.planetBlue === true){
-    selectedItem.planetBlue = false;
-  } else {
-    selectedItem.planetBlue = true;
+  if (selectedItem.solarSystem.canBeManipulated === true && selectedItem.planetType !== "sun"){
+    if (selectedItem.planetBlue === true){
+      selectedItem.planetBlue = false;
+    } else {
+      selectedItem.planetBlue = true;
+    }
   }
 }
 
 function clickButtonGreen(){
-  if (selectedItem.planetGreen === true){
-    selectedItem.planetGreen = false;
-  } else {
-    selectedItem.planetGreen = true;
+  if (selectedItem.solarSystem.canBeManipulated === true && selectedItem.planetType !== "sun"){
+    if (selectedItem.planetGreen === true){
+      selectedItem.planetGreen = false;
+    } else {
+      selectedItem.planetGreen = true;
+    }
   }
 }
-*/
+
+function clickButtonUpgrade(){
+  if (copyGame.orbits.length > game.orbits.length){
+    game.createNewOrbit("small");
+    game.orbitDistances();
+  }
+  if (copyGame.orbits.length === game.orbits.length){
+    document.getElementById("upgradeSunPrompt").hidden = true;
+    document.getElementById("buttonUpgrade").hidden = true;
+    document.getElementById("sunDescription").textContent = "The burning heart of this system. It is fully upgraded and supports as many orbits as it possibly can.";
+  }
+}
+
+function checkUserInterface(){
+  if (selectedItem.planetType === "sun" && planetInterface.hidden === false){
+    showSunInterface();
+  } else if (planetInterface.hidden === true) {
+    showPlanetInterface();
+  }
+}
+
+function showSunInterface(){
+  planetInterface.hidden = true;
+  sunInterface.hidden = false;
+}
+
+function showPlanetInterface(){
+  sunInterface.hidden = true;
+  planetInterface.hidden = false;
+}
