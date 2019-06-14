@@ -43,33 +43,8 @@ canvas {
   position: relative;
 }
 
-.description{
-}
-
 button {
   text-align: center;
   font-family: garamond;
   font-size: 15px;
-}
-
-.anim-fade-user-interface {
-  animation-name: fade-user-interface;
-  animation-duration: 1s;
-}
-
-@-webkit-keyframes fade-user-interface {
-  0% {opacity: 1}
-  50% {opacity: 0}
-  100% {opacity: 0}
-}
-
-.anim-show-user-interface {
-  animation-name: show-user-interface;
-  animation-duration: 1s;
-}
-
-@-webkit-keyframes fade-user-interface {
-  0% {opacity: 0}
-  50% {opacity: 0}
-  100% {opacity: 1}
 }
