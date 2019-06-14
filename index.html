@@ -10,10 +10,10 @@
     <canvas id="gameCanvas" width="900" height="900"></canvas>
     <canvas id="copyCanvas" width="400" height="400"></canvas>
 
-    <div hidden="true" class="user-interface" id="planetInterface">
+    <div class="user-interface" id="planetInterface">
       <h2>Planet Manipulation</h2>
       <div class="description-container">
-        <p class="description">Welcome Planetary Administrator!
+        <p id="planet-description" class="description">Welcome Planetary Administrator!
         <br><br>Select a planet to begin! </p></div>
       <p>Rescale planet:</p>
       <div class="button-container">
@@ -41,12 +41,12 @@
       <br>
     </div>
 
-    <div class="user-interface" id="modelInterface">
+    <div hidden="true" class="user-interface" id="modelInterface">
       <h2>Model System</h2>
       <p>You have selected the model system. As Planetary Administrator, your job is to copy the model system precisely.</p>
       <br>
       <div class="description-container">
-        <p class="description">Some description of the planet that the player selected.</p></div>
+        <p id="model-description" class="description">Some description of the planet that the player selected.</p></div>
       <br>
     </div>
   </body>
