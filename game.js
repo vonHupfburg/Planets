@@ -202,6 +202,8 @@ class Orbit extends Planet {
 class SolarSystem {
   constructor(canvas, canBeManipulated) {
     this.canvas = canvas;
+    this.kupierBelt = this.getAsteroidArray("kupier");
+    this.postSolarBelt = this.getAsteroidArray("postSolar");
     this.ctx = this.canvas.getContext("2d");
     this.sun = new Planet(this, "sun", true);
     this.canvasMidX = this.canvas.getBoundingClientRect().left + rescaleValue(500, this.canvas);
@@ -217,6 +219,14 @@ class SolarSystem {
     this.canvas.addEventListener("click", this.selectionEvent.bind(this));
   }
 
+  getAsteroidArray(beltType){
+    var tempArray = [];
+    for (var index = 0; index < 1000; index++){
+      tempArray.push(new Asteroid(beltType));
+    }
+    return tempArray;
+  }
+
   draw() {
     // Null drawing:
     this.ctx.rect(0, 0, rescaleValue(1000, this.canvas), rescaleValue(1000, this.canvas));
@@ -225,6 +235,14 @@ class SolarSystem {
     // Background stars:
     for (var index = 0; index < game.starArray.length; index++){
       game.starArray[index].drawAll(this.canvas, this.ctx);
+    }
+    // Asteroid belt:
+    for (var index = 0; index < this.kupierBelt.length; index++){
+      this.kupierBelt[index].drawAll(this, this.canvas, this.ctx);
+    }
+    // Postsolar asteroid belt:
+    for (var index = 0; index < this.postSolarBelt.length; index++){
+      this.postSolarBelt[index].drawAll(this, this.canvas, this.ctx);
     }
     // Render sun:
     this.drawSolarFlare();
@@ -284,7 +302,6 @@ class SolarSystem {
     var tempBoo = false;
     for (var index = 0; index < this.orbits.length; index++){
       tempReal = tempReal + 5 + this.orbits[index].getPlanetWidthPx();
-      console.log(this.orbits[index].moonArray);
       if (this.orbits[index].moonArray.length !== 0){
         tempReal = tempReal + 1 + 2 * this.orbits[index].moonArray.length;
       }
@@ -299,6 +316,29 @@ class SolarSystem {
       }
       this.orbits[index].orbitPeriod = this.orbits[index].getOrbitPeriod();
     }
+    if (this.orbits.length > 2){
+      this.recalcKupier();
+      this.recalcPostSolar();
+    }
+  }
+
+  recalcKupier(){
+    var tempIndex = 0;
+    for (var index = 0; index < this.orbits.length; index++){
+      if (tempIndex === 0 && index >= this.orbits.length/2){
+        tempIndex = index;
+      }
+    }
+    var tempReal = (this.orbits[tempIndex - 1].orbitDistance + this.orbits[tempIndex].orbitDistance)/2;
+    for (var index = 0; index < this.kupierBelt.length; index++){
+      this.kupierBelt[index].newDistance(tempReal);
+    }
+  }
+
+  recalcPostSolar(){
+    for (var index = 0; index < this.postSolarBelt.length; index++){
+      this.postSolarBelt[index].newDistance(50 + this.orbits[this.orbits.length - 1].orbitDistance);
+    }
   }
 }
 
@@ -312,6 +352,63 @@ class BackgroundStar {
   }
 
   drawAll(canvas, ctx){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(rescaleValue(this.locX, canvas), rescaleValue(this.locY, canvas), rescaleValue(this.width, canvas), 0, 2*Math.PI);
+    ctx.fillStyle = this.colorString;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class Asteroid {
+  constructor(beltType) {
+    this.beltType = beltType
+    this.baseDistance = this.getInitDistance(this.beltType);
+    this.offsetDistance = -25 + Math.random() * 50;
+    this.angle = Math.random();
+    this.locX = this.getLocX();
+    this.locY = this.getLocY();
+    this.width = 0.5 + 2 * Math.random();
+    this.colorString = this.getColorString(this.beltType);
+  }
+
+  getColorString(){
+    var tempString = (Math.floor(0 + 255 * Math.random())).toString(16);
+    if (this.beltType === "kupier"){
+      return "#" + tempString + tempString + tempString;
+    } else {
+      return "#" + tempString + tempString + tempString;
+    }
+  }
+
+  getInitDistance(beltType){
+    if (this.beltType === "kupier"){
+      return 140.5;
+    } else {
+      return 242.5;
+    }
+  }
+
+  getLocX(){
+    return 500 + (this.baseDistance + this.offsetDistance) * Math.sin(2*Math.PI*this.angle)
+  }
+
+  getLocY(){
+    return 500 + (this.baseDistance + this.offsetDistance) * Math.cos(2*Math.PI*this.angle)
+  }
+
+  getNewLocs(){
+    this.locX = this.getLocX();
+    this.locY = this.getLocY();
+  }
+
+  newDistance(whatDistance){
+    this.baseDistance = whatDistance;
+    this.getNewLocs();
+  }
+
+  drawAll(solarSystem, canvas, ctx){
     ctx.save();
     ctx.beginPath();
     ctx.arc(rescaleValue(this.locX, canvas), rescaleValue(this.locY, canvas), rescaleValue(this.width, canvas), 0, 2*Math.PI);
@@ -373,11 +470,11 @@ class Game {
   }
 
   getStarsArray(){
-    var tempBackgroundStarsArray = [];
+    var tempArray = [];
     for (var index = 0; index < 1000; index++){
-      tempBackgroundStarsArray.push(new BackgroundStar(this.canvas));
+      tempArray.push(new BackgroundStar());
     }
-    return tempBackgroundStarsArray;
+    return tempArray;
   }
 
   clickButtonMoonAdd(){
@@ -539,7 +636,6 @@ class Game {
 }
 
 var game = new Game();
-console.log(game);
 
 function rescaleValue(whichValue, whichCanvas){
   var rescaleRatio = (whichCanvas.width / 1000);
