@@ -25,7 +25,7 @@ class Planet {
     } else if (this.planetType === "large") {
       tempReal = 18;
     } else if (this.planetType === "sun") {
-      tempReal = 70;
+      tempReal = 50 + 2.5 * (this.solarSystem.orbits.length)
     } else {
       tempReal = 0;
     }
@@ -100,7 +100,7 @@ class Planet {
   drawPlanetSelection(){
     this.ctx.save();
     this.ctx.beginPath();
-    this.ctx.arc(this.locX, this.locY, rescaleValue(this.getPlanetWidthPx(), this.canvas) + 5, 0, 2*Math.PI);
+    this.ctx.arc(this.locX, this.locY, rescaleValue(this.getPlanetWidthPx() + 5, this.canvas), 0, 2*Math.PI);
     this.ctx.globalAlpha = (this.selectionOpacity / 100);
     this.ctx.fillStyle = '#ffcc00';
     this.ctx.fill();
@@ -122,19 +122,24 @@ class Orbit extends Planet {
   }
 
   addMoon(){
-    console.log("yay")
     var tempMoon = new Orbit(this.solarSystem, "moon", this)
     this.moonArray.push(tempMoon);
-    tempMoon.orbitDistance = this.getPlanetWidthPx() + 2 * this.moonArray.length;
-    tempMoon.orbitPeriod = tempMoon.getOrbitPeriod();
-    console.log(tempMoon.orbitPeriod);
+    this.recalcMoonDistances();
+    this.solarSystem.recalcOrbitDistances();
     tempMoon.selectionOpacity = this.selectionOpacity;
     tempMoon.opacityIncreasing = this.opacityIncreasing;
   }
 
   removeMoon(){
-    console.log("wut")
     this.moonArray.splice(this.moonArray.length - 1, 1);
+    this.solarSystem.recalcOrbitDistances();
+  }
+
+  recalcMoonDistances(){
+    for (var index = 0; index < this.moonArray.length; index++){
+      this.moonArray[index].orbitDistance = this.getPlanetWidthPx() + 1 + 2 * (index + 1);
+      this.moonArray[index].orbitPeriod = this.moonArray[index].getOrbitPeriod();
+    }
   }
 
   getOrbitPeriod(){
@@ -263,11 +268,11 @@ class SolarSystem {
   }
 
   drawSolarFlare(){
-    for (var index = 0; index < 20; index++){
+    for (var index = 0; index < 40; index++){
       this.ctx.save();
       this.ctx.beginPath();
       var rand = Math.random()
-      this.ctx.arc(rescaleValue(500, this.canvas) + rescaleValue(70, this.canvas) * Math.sin(2*Math.PI*rand), rescaleValue(500, this.canvas) + rescaleValue(70, this.canvas) * Math.cos(2*Math.PI*rand), 1, 0, 2*Math.PI);
+      this.ctx.arc(rescaleValue(500, this.canvas) + rescaleValue(this.sun.getPlanetWidthPx(), this.canvas) * Math.sin(2*Math.PI*rand), rescaleValue(500, this.canvas) + rescaleValue(this.sun.getPlanetWidthPx(), this.canvas) * Math.cos(2*Math.PI*rand), rescaleValue(1, this.canvas), 0, 2*Math.PI);
       this.ctx.fillStyle = "#ffcc00";
       this.ctx.fill();
       this.ctx.restore();
@@ -277,15 +282,22 @@ class SolarSystem {
   recalcOrbitDistances(){
     var tempReal = this.sun.getPlanetWidthPx();
     var tempBoo = false;
-    for (var indexOrbits = 0; indexOrbits < this.orbits.length; indexOrbits++){
-      tempReal = tempReal + 5 + this.orbits[indexOrbits].getPlanetWidthPx();
-      if (indexOrbits < this.orbits.length/2){
-        this.orbits[indexOrbits].orbitDistance = tempReal + 40
-      } else {
-        this.orbits[indexOrbits].orbitDistance = tempReal + 100
+    for (var index = 0; index < this.orbits.length; index++){
+      tempReal = tempReal + 5 + this.orbits[index].getPlanetWidthPx();
+      console.log(this.orbits[index].moonArray);
+      if (this.orbits[index].moonArray.length !== 0){
+        tempReal = tempReal + 1 + 2 * this.orbits[index].moonArray.length;
       }
-      tempReal = tempReal + this.orbits[indexOrbits].getPlanetWidthPx();
-      this.orbits[indexOrbits].orbitPeriod = this.orbits[indexOrbits].getOrbitPeriod();
+      if (index < this.orbits.length/2){
+        this.orbits[index].orbitDistance = tempReal + 40
+      } else {
+        this.orbits[index].orbitDistance = tempReal + 100
+      }
+      tempReal = tempReal + this.orbits[index].getPlanetWidthPx();
+      if (this.orbits[index].moonArray.length !== 0){
+        tempReal = tempReal + 1 + 2 * this.orbits[index].moonArray.length;
+      }
+      this.orbits[index].orbitPeriod = this.orbits[index].getOrbitPeriod();
     }
   }
 }
@@ -378,18 +390,21 @@ class Game {
 
   clickButtonSmall(){
     this.selectedItem.planetType = "small";
+    this.selectedItem.recalcMoonDistances();
     this.selectedItem.solarSystem.recalcOrbitDistances();
     this.refreshDescription();
   }
 
   clickButtonMedium(){
     this.selectedItem.planetType = "medium";
+    this.selectedItem.recalcMoonDistances();
     this.selectedItem.solarSystem.recalcOrbitDistances();
     this.refreshDescription();
   }
 
   clickButtonLarge(){
     this.selectedItem.planetType = "large";
+    this.selectedItem.recalcMoonDistances();
     this.selectedItem.solarSystem.recalcOrbitDistances();
     this.refreshDescription();
   }
@@ -433,8 +448,6 @@ class Game {
     }
     this.refreshDescription();
   }
-
-
 
   checkUserInterface(){
     this.refreshDescription();
