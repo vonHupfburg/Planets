@@ -1,5 +1,5 @@
 class Planet {
-  constructor(solarSystem, planetType) {
+  constructor(solarSystem, planetType, isRed, isBlue, isGreen) {
     this.solarSystem = solarSystem;
     this.canvas = this.solarSystem.canvas;
     this.ctx = this.canvas.getContext("2d");
@@ -8,9 +8,9 @@ class Planet {
     this.planetType = planetType;
     this.locX = rescaleValue(500, this.canvas);
     this.locY = rescaleValue(500, this.canvas);
-    this.planetBlue = false;
-    this.planetRed = false;
-    this.planetGreen = false;
+    this.planetBlue = isRed;
+    this.planetRed = isBlue;
+    this.planetGreen = isGreen;
     this.moonArray = [];
   }
 
@@ -60,7 +60,7 @@ class Planet {
       tempString = "#909090"
     }
     if (this.planetRed === true && this.planetBlue === true && this.planetGreen === true){
-      tempString = "#ffffdd"
+      tempString = "#cccccc"
     }
     return tempString;
   }
@@ -109,8 +109,8 @@ class Planet {
 }
 
 class Orbit extends Planet {
-  constructor(solarSystem, planetType, centerOfGravity) {
-    super(solarSystem, planetType, centerOfGravity)
+  constructor(solarSystem, centerOfGravity, planetType, isRed, isBlue, isGreen, numMoons) {
+    super(solarSystem, planetType, isRed, isBlue, isGreen)
     this.solarSystem = solarSystem;
     this.centerOfGravity = centerOfGravity;
     this.locX = this.getNextLocX();
@@ -119,10 +119,20 @@ class Orbit extends Planet {
     this.orbitPeriod = 0;
     this.orbitCurrent = 0;
     this.moonArray = [];
+    this.getMoons(numMoons);
+  }
+
+  getMoons(numMoons){
+    if (numMoons !== 0){
+      for (var index = 0; index < numMoons; index++){
+        this.addMoon();
+      }
+    }
   }
 
   addMoon(){
-    var tempMoon = new Orbit(this.solarSystem, "moon", this)
+    // TODO: Max number of moons.
+    var tempMoon = new Orbit(this.solarSystem, this, "moon", false, false, false, 0);
     this.moonArray.push(tempMoon);
     this.recalcMoonDistances();
     this.solarSystem.recalcOrbitDistances();
@@ -213,6 +223,57 @@ class SolarSystem {
     this.time = 0;
     this.createEventListeners();
     window.requestAnimationFrame(this.draw.bind(this));
+    if (canBeManipulated === false){
+      this.randomSystem();
+    } else {
+      this.basicSystem();
+    }
+  }
+
+  randomSystem(){
+    var tempInteger = this.randomNumPlanets();
+    for (var index = 0; index < tempInteger; index++){
+      this.createNewOrbit(this.randomType(), this.randomColor(), this.randomColor(), this.randomColor(), this.randomNumMoons())
+    }
+
+  }
+
+  basicSystem(){
+    for (var index = 0; index < 3; index++){
+      this.createNewOrbit("small", false, false, false, 0);
+    }
+  }
+
+  createNewOrbit(whichType, isRed, isBlue, isGreen, numMoons){
+    this.orbits.push(new Orbit(this, this.sun, whichType, isRed, isBlue, isGreen, numMoons));
+    this.recalcOrbitDistances();
+  }
+
+  randomType(){
+    var tempReal = Math.random();
+    if (tempReal <= 0.50){
+      return "small"
+    } else if (tempReal > 0.75) {
+      return "large"
+    } else {
+      return "medium"
+    }
+  }
+
+  randomNumPlanets(){
+    return 4 + Math.floor(5 * Math.random());
+  }
+
+  randomColor(){
+    if (Math.random() < 0.40){
+      return true
+    } else {
+      return false
+    }
+  }
+
+  randomNumMoons(){
+    return Math.floor(0 + 5 * Math.random());
   }
 
   createEventListeners(){
@@ -221,7 +282,7 @@ class SolarSystem {
 
   getAsteroidArray(beltType){
     var tempArray = [];
-    for (var index = 0; index < 1000; index++){
+    for (var index = 0; index < 400; index++){
       tempArray.push(new Asteroid(beltType));
     }
     return tempArray;
@@ -278,11 +339,6 @@ class SolarSystem {
       game.selectedItem = this.sun;
     }
     game.checkUserInterface();
-  }
-
-  createNewOrbit(whichType){
-    //TODO: Add ability for passing predef color & moons.
-    this.orbits.push(new Orbit(this, whichType, this.sun));
   }
 
   drawSolarFlare(){
@@ -435,8 +491,23 @@ class Game {
     // Throwout:
     this.createEventListeners();
     this.lockCanvasii();
-    // Gameplay begins:
-    this.createModelSystem();
+  }
+
+  checkForVictory(){
+    if (this.modelSystem.orbits.length !== this.copySystem.orbits.length){
+      return false;
+    }
+    for (var index = 0; index < this.modelSystem.orbits.length; index++){
+      if (this.getDescription(this.modelSystem.orbits[index]) !== this.getDescription(this.copySystem.orbits[index])){
+        return false;
+      }
+    }
+    console.log("heyooo");
+    return true;
+  }
+
+  victory(){
+    rebootGame();
   }
 
   createEventListeners(){
@@ -451,19 +522,6 @@ class Game {
     document.getElementById('buttonMoonRemove').addEventListener("click", this.clickButtonMoonRemove.bind(this));
   }
 
-  createModelSystem(){
-    //TODO: this should be randomized.
-    this.modelSystem.createNewOrbit("small");
-    this.modelSystem.createNewOrbit("medium");
-    this.modelSystem.createNewOrbit("small");
-    this.modelSystem.createNewOrbit("small");
-    this.modelSystem.createNewOrbit("medium");
-    this.modelSystem.createNewOrbit("small");
-    this.modelSystem.createNewOrbit("large");
-    this.modelSystem.createNewOrbit("large");
-    this.modelSystem.recalcOrbitDistances();
-  }
-
   lockCanvasii(){
     gameCanvas.style.left = "500px";
     copyCanvas.style.left = "50px";
@@ -471,7 +529,7 @@ class Game {
 
   getStarsArray(){
     var tempArray = [];
-    for (var index = 0; index < 1000; index++){
+    for (var index = 0; index < 400; index++){
       tempArray.push(new BackgroundStar());
     }
     return tempArray;
@@ -479,31 +537,33 @@ class Game {
 
   clickButtonMoonAdd(){
     this.selectedItem.addMoon();
+    this.setupChange();
   }
 
   clickButtonMoonRemove(){
     this.selectedItem.removeMoon();
+    this.setupChange();
   }
 
   clickButtonSmall(){
     this.selectedItem.planetType = "small";
     this.selectedItem.recalcMoonDistances();
     this.selectedItem.solarSystem.recalcOrbitDistances();
-    this.refreshDescription();
+    this.setupChange();
   }
 
   clickButtonMedium(){
     this.selectedItem.planetType = "medium";
     this.selectedItem.recalcMoonDistances();
     this.selectedItem.solarSystem.recalcOrbitDistances();
-    this.refreshDescription();
+    this.setupChange();
   }
 
   clickButtonLarge(){
     this.selectedItem.planetType = "large";
     this.selectedItem.recalcMoonDistances();
     this.selectedItem.solarSystem.recalcOrbitDistances();
-    this.refreshDescription();
+    this.setupChange();
   }
 
   clickButtonRed(){
@@ -512,7 +572,7 @@ class Game {
     } else {
       this.selectedItem.planetRed = true;
     }
-    this.refreshDescription();
+    this.setupChange();
   }
 
   clickButtonBlue(){
@@ -521,7 +581,7 @@ class Game {
     } else {
       this.selectedItem.planetBlue = true;
     }
-    this.refreshDescription();
+    this.setupChange();
   }
 
   clickButtonGreen(){
@@ -530,12 +590,12 @@ class Game {
     } else {
       this.selectedItem.planetGreen = true;
     }
-    this.refreshDescription();
+    this.setupChange();
   }
 
   clickButtonUpgrade(){
     if (this.modelSystem.orbits.length > this.copySystem.orbits.length){
-      this.copySystem.createNewOrbit("small");
+      this.copySystem.createNewOrbit("small", false, false, false, 0);
       this.copySystem.recalcOrbitDistances();
     }
     if (this.modelSystem.orbits.length === this.copySystem.orbits.length){
@@ -543,11 +603,11 @@ class Game {
       document.getElementById("buttonUpgrade").hidden = true;
       document.getElementById("sunDescription").textContent = "The burning heart of this system. It is fully upgraded and supports as many orbits as it possibly can.";
     }
-    this.refreshDescription();
+    this.setupChange();
   }
 
   checkUserInterface(){
-    this.refreshDescription();
+    this.setupChange();
     if (this.selectedItem.solarSystem === this.copySystem){
       if (this.selectedItem.planetType === "sun"){
         this.showSunInterface();
@@ -577,65 +637,89 @@ class Game {
     this.modelInterface.hidden = false;
   }
 
-  refreshDescription(){
-    this.planetInterfaceDescription.textContent = this.getDescription();
-    this.modelInterfaceDescription.textContent = this.getDescription();
+  setupChange(){
+    this.checkForVictory();
+    this.refreshDescription();
   }
 
-  getDescription(){
+  refreshDescription(){
+    var tempText = this.getDescription(this.selectedItem);
+    this.planetInterfaceDescription.textContent = tempText;
+    this.modelInterfaceDescription.textContent = tempText;
+  }
+
+  getDescription(whichEntity){
     var tempString = "";
-    if (this.selectedItem.planetType === "sun"){
-      tempString = "The burning heart of this system. It supports " + this.selectedItem.solarSystem.orbits.length + " orbits."
+    if (whichEntity.planetType === "sun"){
+      tempString = "The burning heart of this system. It supports " + whichEntity.solarSystem.orbits.length + " orbits."
     } else {
-      tempString = tempString + this.getTextWhichPlanetSize();
-      tempString = tempString + this.getTextWhichColor();
-      tempString = tempString + this.getTextWhichOrbit();
+      tempString = tempString + this.getTextWhichPlanetSize(whichEntity);
+      tempString = tempString + this.getTextWhichColor(whichEntity);
+      tempString = tempString + this.getTextWhichOrbit(whichEntity);
+      tempString = tempString + this.getTextNumMoon(whichEntity);
     }
     return tempString
   }
 
-  getTextWhichOrbit(){
+  getTextWhichOrbit(whichEntity){
     var tempInteger = 0;
-    for (var index = 0; index < this.selectedItem.solarSystem.orbits.length; index++){
-      if (this.selectedItem === this.selectedItem.solarSystem.orbits[index]){
+    for (var index = 0; index < whichEntity.solarSystem.orbits.length; index++){
+      if (whichEntity === whichEntity.solarSystem.orbits[index]){
         tempInteger = index + 1;
       }
     }
     return (" planet, located on the " + tempInteger + ". orbit of the system.")
   }
 
-  getTextWhichPlanetSize(){
-    if (this.selectedItem.planetType === "small"){
+  getTextWhichPlanetSize(whichEntity){
+    if (whichEntity.planetType === "small"){
       return "A small, ";
-    } else if (this.selectedItem.planetType === "medium") {
+    } else if (whichEntity.planetType === "medium") {
       return "A medium-sized, ";
-    } else if (this.selectedItem.planetType === "large") {
+    } else if (whichEntity.planetType === "large") {
       return "A large, "
     }
   }
 
-  getTextWhichColor(){
-    if (this.selectedItem.planetRed === true && this.selectedItem.planetBlue === true && this.selectedItem.planetGreen === true){
+  getTextWhichColor(whichEntity){
+    if (whichEntity.planetRed === true && whichEntity.planetBlue === true && whichEntity.planetGreen === true){
       return "white (red & green & blue)"
-    } else if (this.selectedItem.planetRed === false && this.selectedItem.planetBlue === true && this.selectedItem.planetGreen === true) {
+    } else if (whichEntity.planetRed === false && whichEntity.planetBlue === true && whichEntity.planetGreen === true) {
       return "cyan-colored (blue & green)"
-    } else if (this.selectedItem.planetRed === true && this.selectedItem.planetBlue === false && this.selectedItem.planetGreen === true) {
+    } else if (whichEntity.planetRed === true && whichEntity.planetBlue === false && whichEntity.planetGreen === true) {
       return "yellow (red & green)"
-    } else if (this.selectedItem.planetRed === true && this.selectedItem.planetBlue === true && this.selectedItem.planetGreen === false) {
+    } else if (whichEntity.planetRed === true && whichEntity.planetBlue === true && whichEntity.planetGreen === false) {
       return "purple (red & blue)"
-    } else if (this.selectedItem.planetRed === true && this.selectedItem.planetBlue === false && this.selectedItem.planetGreen === false) {
+    } else if (whichEntity.planetRed === true && whichEntity.planetBlue === false && whichEntity.planetGreen === false) {
       return "red"
-    } else if (this.selectedItem.planetRed === true && this.selectedItem.planetBlue === false && this.selectedItem.planetGreen === false) {
+    } else if (whichEntity.planetRed === false && whichEntity.planetBlue === true && whichEntity.planetGreen === false) {
       return "blue"
-    } else if (this.selectedItem.planetRed === false && this.selectedItem.planetBlue === false && this.selectedItem.planetGreen === true) {
+    } else if (whichEntity.planetRed === false && whichEntity.planetBlue === false && whichEntity.planetGreen === true) {
       return "green"
     } else {
       return "gray"
     }
   }
+
+  getTextNumMoon(whichEntity){
+    if (whichEntity.moonArray.length !== 0){
+      if (whichEntity.moonArray.length === 1){
+        return " It has 1 moon."
+      } else {
+        return " It has " + whichEntity.moonArray.length + " moons."
+      }
+    } else {
+      return " It has no moons."
+    }
+  }
 }
 
 var game = new Game();
+
+function rebootGame(){
+  // TODO: this
+  // TODO: Gabit meghívni a github-ba.
+}
 
 function rescaleValue(whichValue, whichCanvas){
   var rescaleRatio = (whichCanvas.width / 1000);
