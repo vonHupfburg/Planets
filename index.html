@@ -7,20 +7,22 @@
   </head>
   <body>
     <h1>Planets</h1>
+    <p id="mineral-ui" class="mineral-window">100</p>
+    <p id="gas-ui" class="gas-window">0</p>
     <canvas id="gameCanvas" width="900" height="900"></canvas>
     <canvas id="copyCanvas" width="400" height="400"></canvas>
     <!-- PLANET INTERFACE -->
     <div class="user-interface" id="planetInterface">
       <h2>Planet Manipulation</h2>
-      <div class="description-container">
-        <p id="planet-description">Welcome Planetary Administrator!
-        <br><br>Select a planet to begin!</p></div>
+      <div class="button-container">
+        <p id="planet-description">Welcome Planetary Administrator!</p>
+        <p id="income-statement">Select a planet to begin!</p>
+      </div>
       <!-- [!] -->
       <p>Rescale planet:</p>
       <div class="button-container">
-        <button type="button" id="buttonSmall">Small</button>
-        <button type="button" id="buttonMedium">Medium</button>
-        <button type="button" id="buttonLarge">Large</button>
+        <button type="button" id="buttonUpgradePlanet">Upgrade</button>
+        <button type="button" id="buttonDowngradePlanet">Downgrade</button>
       </div>
       <!-- [!] -->
       <p>Recolor planet:</p>

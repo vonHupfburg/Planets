@@ -109,7 +109,7 @@ class Planet {
 }
 
 class Orbit extends Planet {
-  constructor(solarSystem, centerOfGravity, planetType, isRed, isBlue, isGreen, numMoons) {
+  constructor(solarSystem, centerOfGravity, planetType, isRed, isBlue, isGreen, numMoons, generatesIncome) {
     super(solarSystem, planetType, isRed, isBlue, isGreen)
     this.solarSystem = solarSystem;
     this.centerOfGravity = centerOfGravity;
@@ -120,6 +120,49 @@ class Orbit extends Planet {
     this.orbitCurrent = 0;
     this.moonArray = [];
     this.getMoons(numMoons);
+    this.generatesIncome = generatesIncome;
+    this.mineralIncome = 0;
+    this.gasIncome = 0;
+    this.recalcIncome();
+    this.generateIncome();
+  }
+
+  recalcIncome(){
+    console.log("a")
+    var tempMineralIncome = 0;
+    var tempGasIncome = 0;
+    // PLANET SIZE:
+    if (this.planetType === "large"){
+      tempMineralIncome = 10;
+      tempGasIncome = 0;
+    } else if (this.planetType === "medium"){
+      tempMineralIncome = 25;
+      tempGasIncome = 10;
+    } else if (this.planetType === "small"){
+      tempMineralIncome = 40;
+      tempGasIncome = 20;
+    }
+    // PLANET COLORS:
+    if (this.planetRed === true){
+      tempMineralIncome = tempMineralIncome + 5;
+      tempGasIncome = tempGasIncome + 5;
+    }
+    if (this.planetBlue === true){
+      tempMineralIncome = tempMineralIncome + 20;
+      tempGasIncome = tempGasIncome - 10;
+    }
+    if (this.planetGreen === true){
+      tempMineralIncome = tempMineralIncome - 10;
+      tempGasIncome = tempGasIncome + 20;
+    }
+    // PLANET MOONS:
+    if (this.moonArray.length !== 0){
+      console.log("b")
+      tempMineralIncome = (1 + (this.moonArray.length * 0.25)) * tempMineralIncome;
+      tempGasIncome = (1 + (this.moonArray.length * 0.25)) * tempGasIncome;
+    }
+    this.mineralIncome = tempMineralIncome;
+    this.gasIncome = tempGasIncome;
   }
 
   getMoons(numMoons){
@@ -131,8 +174,7 @@ class Orbit extends Planet {
   }
 
   addMoon(){
-    // TODO: Max number of moons.
-    var tempMoon = new Orbit(this.solarSystem, this, "moon", false, false, false, 0);
+    var tempMoon = new Orbit(this.solarSystem, this, "moon", false, false, false, 0, false);
     this.moonArray.push(tempMoon);
     this.recalcMoonDistances();
     this.solarSystem.recalcOrbitDistances();
@@ -158,6 +200,17 @@ class Orbit extends Planet {
     } else {
       return 100 * Math.PI * (((this.orbitDistance)^3)/(this.centerOfGravity.getPlanetWidthPx()));
     }
+  }
+
+  generateIncome(){
+    if (this.generatesIncome === true){
+      window.setTimeout(this.generateIncomeCallback.bind(this), (1000/60) * this.orbitPeriod);
+    }
+  }
+
+  generateIncomeCallback(){
+    game.addResources(this.mineralIncome, this.gasIncome);
+    this.generateIncome();
   }
 
   getNextLocs(){
@@ -233,19 +286,19 @@ class SolarSystem {
   randomSystem(){
     var tempInteger = this.randomNumPlanets();
     for (var index = 0; index < tempInteger; index++){
-      this.createNewOrbit(this.randomType(), this.randomColor(), this.randomColor(), this.randomColor(), this.randomNumMoons())
+      this.createNewOrbit(this.randomType(), this.randomColor(), this.randomColor(), this.randomColor(), this.randomNumMoons(), false)
     }
 
   }
 
   basicSystem(){
     for (var index = 0; index < 3; index++){
-      this.createNewOrbit("small", false, false, false, 0);
+      this.createNewOrbit("large", false, false, false, 0, true);
     }
   }
 
-  createNewOrbit(whichType, isRed, isBlue, isGreen, numMoons){
-    this.orbits.push(new Orbit(this, this.sun, whichType, isRed, isBlue, isGreen, numMoons));
+  createNewOrbit(whichType, isRed, isBlue, isGreen, numMoons, generatesIncome){
+    this.orbits.push(new Orbit(this, this.sun, whichType, isRed, isBlue, isGreen, numMoons, generatesIncome));
     this.recalcOrbitDistances();
   }
 
@@ -315,8 +368,16 @@ class SolarSystem {
       this.orbits[index].drawMoons();
     }
     // Restart loop:
-    window.requestAnimationFrame(this.draw.bind(this));
     this.time++;
+    this.framelock();
+  }
+
+  framelock(){
+    window.setTimeout(this.framelockCallback.bind(this), (1000/60));
+  }
+
+  framelockCallback(){
+    window.requestAnimationFrame(this.draw.bind(this));
   }
 
   selectionEvent(){
@@ -487,10 +548,57 @@ class Game {
     this.modelInterface = document.getElementById("modelInterface");
     this.planetInterfaceDescription = document.getElementById("planet-description");
     this.modelInterfaceDescription = document.getElementById("model-description");
+    this.incomeInterfaceDescription = document.getElementById("income-statement");
+    this.mineralUI = document.getElementById("mineral-ui");
+    this.gasUI = document.getElementById("gas-ui");
     this.selectedItem = null;
+    this.stockMinerals = 100;
+    this.stockGas = 0;
+    this.balanceSheet = this.getBalanceSheet();
     // Throwout:
     this.createEventListeners();
     this.lockCanvasii();
+  }
+
+  addResources(numMinerals, numGas){
+    this.stockMinerals = this.stockMinerals + numMinerals;
+    this.stockGas = this.stockGas + numGas;
+    this.updateResourceUI()
+  }
+
+  getBalanceSheet(){
+    var tempMatrix = [];
+    tempMatrix.push(["moonAdd", 100, 50]);
+    tempMatrix.push(["moonRemove", -50, -25]);
+    tempMatrix.push(["upgradePlanet", 100, 50]);
+    tempMatrix.push(["downgradePlanet", -50, -25]);
+    tempMatrix.push(["colorAdd", 100, 0]);
+    tempMatrix.push(["colorRemove", -50, 0]);
+    tempMatrix.push(["upgradeSun", 0, 100]);
+    return tempMatrix;
+  }
+
+  getCost(handle, whichResource){
+    console.log(handle + " & " + whichResource + ": ");
+    for (var index = 0; index < this.balanceSheet.length; index++){
+      if (this.balanceSheet[index][0] === handle){
+        if (whichResource === "mineral"){
+          return this.balanceSheet[index][1];
+        } else {
+          return this.balanceSheet[index][2];
+        }
+      }
+    }
+  }
+
+  hasResources(handle){
+    if (this.stockMinerals < this.getCost(handle, "mineral") && this.getCost(handle, "mineral") !== 0){
+      return false
+    }
+    if (this.stockGas < this.getCost(handle, "gas") && this.getCost(handle, "gas") !== 0){
+      return false
+    }
+    return true
   }
 
   checkForVictory(){
@@ -498,7 +606,7 @@ class Game {
       return false;
     }
     for (var index = 0; index < this.modelSystem.orbits.length; index++){
-      if (this.getDescription(this.modelSystem.orbits[index]) !== this.getDescription(this.copySystem.orbits[index])){
+      if (this.getPlanetDescription(this.modelSystem.orbits[index]) !== this.getPlanetDescription(this.copySystem.orbits[index])){
         return false;
       }
     }
@@ -511,9 +619,8 @@ class Game {
   }
 
   createEventListeners(){
-    document.getElementById('buttonSmall').addEventListener("click", this.clickButtonSmall.bind(this));
-    document.getElementById('buttonMedium').addEventListener("click", this.clickButtonMedium.bind(this));
-    document.getElementById('buttonLarge').addEventListener("click", this.clickButtonLarge.bind(this));
+    document.getElementById('buttonUpgradePlanet').addEventListener("click", this.clickButtonUpgradePlanet.bind(this));
+    document.getElementById('buttonDowngradePlanet').addEventListener("click", this.clickButtonDowngradePlanet.bind(this));
     document.getElementById('buttonRed').addEventListener("click", this.clickButtonRed.bind(this));
     document.getElementById('buttonGreen').addEventListener("click", this.clickButtonGreen.bind(this));
     document.getElementById('buttonBlue').addEventListener("click", this.clickButtonBlue.bind(this));
@@ -535,67 +642,112 @@ class Game {
     return tempArray;
   }
 
+  subtractCost(handle){
+    this.stockMinerals = this.stockMinerals - this.getCost(handle, "mineral");
+    this.stockGas = this.stockGas - this.getCost(handle, "gas");
+    this.updateResourceUI();
+  }
+
+  updateResourceUI(){
+    this.mineralUI.textContent = this.stockMinerals;
+    this.gasUI.textContent = this.stockGas;
+  }
+
   clickButtonMoonAdd(){
-    this.selectedItem.addMoon();
-    this.setupChange();
+    if (this.selectedItem.moonArray.length < 4){
+      if (this.hasResources("moonAdd")){
+        this.selectedItem.addMoon();
+        this.subtractCost("moonAdd");
+        this.setupChange();
+      }
+    } else {
+      // TODO: UI err. resp.: Can't add any more moons.
+    }
   }
 
   clickButtonMoonRemove(){
-    this.selectedItem.removeMoon();
-    this.setupChange();
+    if (this.hasResources("moonRemove")){
+      this.selectedItem.removeMoon();
+      this.subtractCost("moonRemove");
+      this.setupChange();
+    }
   }
 
-  clickButtonSmall(){
-    this.selectedItem.planetType = "small";
-    this.selectedItem.recalcMoonDistances();
-    this.selectedItem.solarSystem.recalcOrbitDistances();
-    this.setupChange();
+  clickButtonUpgradePlanet(){
+    if (this.selectedItem.planetType !== "small"){
+      if (this.hasResources("upgradePlanet")){
+        if (this.selectedItem.planetType === "medium"){
+          this.selectedItem.planetType = "small";
+        } else {
+          this.selectedItem.planetType = "medium"
+        }
+        this.subtractCost("upgradePlanet");
+        this.setupChange();
+      }
+    } else {
+      // TODO: UI err. resp.: Can't upgrade this planet further.
+    }
   }
 
-  clickButtonMedium(){
-    this.selectedItem.planetType = "medium";
-    this.selectedItem.recalcMoonDistances();
-    this.selectedItem.solarSystem.recalcOrbitDistances();
-    this.setupChange();
-  }
-
-  clickButtonLarge(){
-    this.selectedItem.planetType = "large";
-    this.selectedItem.recalcMoonDistances();
-    this.selectedItem.solarSystem.recalcOrbitDistances();
-    this.setupChange();
+  clickButtonDowngradePlanet(){
+    if (this.selectedItem.planetType !== "large"){
+      if (this.hasResources("downgradePlanet")){
+        if (this.selectedItem.planetType === "medium"){
+          this.selectedItem.planetType = "large";
+        } else {
+          this.selectedItem.planetType = "medium"
+        }
+        this.subtractCost("downgradePlanet")
+        this.setupChange();
+      }
+    } else {
+      // TODO: UI err. resp.: Can't downgrade this planet further.
+    }
   }
 
   clickButtonRed(){
-    if (this.selectedItem.planetRed === true){
+    if (this.selectedItem.planetRed){
       this.selectedItem.planetRed = false;
+      this.subtractCost("colorRemove")
     } else {
-      this.selectedItem.planetRed = true;
+      if (this.hasResources("colorAdd")){
+        this.selectedItem.planetRed = true;
+        this.subtractCost("colorAdd");
+      }
     }
     this.setupChange();
   }
 
   clickButtonBlue(){
-    if (this.selectedItem.planetBlue === true){
+    if (this.selectedItem.planetBlue){
       this.selectedItem.planetBlue = false;
+      this.subtractCost("colorRemove")
     } else {
-      this.selectedItem.planetBlue = true;
+      if (this.hasResources("colorAdd")){
+        this.selectedItem.planetBlue = true;
+        this.subtractCost("colorAdd");
+      }
     }
     this.setupChange();
   }
 
   clickButtonGreen(){
-    if (this.selectedItem.planetGreen === true){
+    if (this.selectedItem.planetGreen){
       this.selectedItem.planetGreen = false;
+      this.subtractCost("colorRemove")
     } else {
-      this.selectedItem.planetGreen = true;
+      if (this.hasResources("colorAdd")){
+        this.selectedItem.planetGreen = true;
+        this.subtractCost("colorAdd");
+      }
     }
     this.setupChange();
   }
 
   clickButtonUpgrade(){
-    if (this.modelSystem.orbits.length > this.copySystem.orbits.length){
-      this.copySystem.createNewOrbit("small", false, false, false, 0);
+    if (this.modelSystem.orbits.length > this.copySystem.orbits.length && this.hasResources("upgradeSun")){
+      this.copySystem.createNewOrbit("large", false, false, false, 0, true);
+      this.subtractCost("upgradeSun")
       this.copySystem.recalcOrbitDistances();
     }
     if (this.modelSystem.orbits.length === this.copySystem.orbits.length){
@@ -607,7 +759,6 @@ class Game {
   }
 
   checkUserInterface(){
-    this.setupChange();
     if (this.selectedItem.solarSystem === this.copySystem){
       if (this.selectedItem.planetType === "sun"){
         this.showSunInterface();
@@ -629,26 +780,44 @@ class Game {
     this.sunInterface.hidden = true;
     this.planetInterface.hidden = false;
     this.modelInterface.hidden = true;
+    this.refreshDescription();
   }
 
   showModelInterface(){
     this.sunInterface.hidden = true;
     this.planetInterface.hidden = true;
     this.modelInterface.hidden = false;
+    this.refreshDescription();
   }
 
   setupChange(){
     this.checkForVictory();
+    this.selectedItem.solarSystem.recalcOrbitDistances();
+    this.selectedItem.recalcIncome();
     this.refreshDescription();
   }
 
   refreshDescription(){
-    var tempText = this.getDescription(this.selectedItem);
-    this.planetInterfaceDescription.textContent = tempText;
-    this.modelInterfaceDescription.textContent = tempText;
+    if (this.selectedItem.planetType !== "sun"){
+      var tempText = this.getPlanetDescription(this.selectedItem);
+      this.planetInterfaceDescription.textContent = tempText;
+      this.modelInterfaceDescription.textContent = tempText;
+      this.incomeInterfaceDescription.textContent = this.getIncomeDescription(this.selectedItem);
+    }
   }
 
-  getDescription(whichEntity){
+  getIncomeDescription(whichEntity){
+    if (this.selectedItem.planetType === "sun"){
+      return "It does not generate resources on its own."
+    } else {
+      var tempText = "It generates " + this.selectedItem.mineralIncome + " minerals and ";
+      var tempText = tempText + this.selectedItem.gasIncome + " gas once every ";
+      var tempText = tempText + parseFloat(this.selectedItem.orbitPeriod / 60).toFixed(2) + " seconds."
+    }
+    return tempText;
+  }
+
+  getPlanetDescription(whichEntity){
     var tempString = "";
     if (whichEntity.planetType === "sun"){
       tempString = "The burning heart of this system. It supports " + whichEntity.solarSystem.orbits.length + " orbits."
@@ -712,13 +881,14 @@ class Game {
       return " It has no moons."
     }
   }
+
+
 }
 
 var game = new Game();
 
 function rebootGame(){
   // TODO: this
-  // TODO: Gabit meghívni a github-ba.
 }
 
 function rescaleValue(whichValue, whichCanvas){

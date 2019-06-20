@@ -20,6 +20,24 @@ canvas {
   border-radius: 15px 15px;
 }
 
+.mineral-window {
+  position: absolute;
+  border: 3px solid RGB(90,150,150);
+  border-radius: 15px 15px;
+  left: 500px;
+  top: 10px;
+  width: 100px;
+}
+
+.gas-window {
+  position: absolute;
+  border: 3px solid RGB(90,150,90);
+  border-radius: 15px 15px;
+  left: 650px;
+  top: 10px;
+  width: 100px;
+}
+
 .user-interface{
   position: absolute;
   left: 50px;
